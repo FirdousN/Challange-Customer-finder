@@ -15,23 +15,28 @@ const scanSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const tStart = performance.now();
+  console.log(`[API/Scan] Request received at ${new Date().toISOString()}`);
   try {
     let user;
     try {
       user = await requireRole('STAFF');
     } catch (authError: unknown) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' }, { status: 401 });
     }
 
+    const tAuth = performance.now();
+    console.log(`[API/Scan] Auth guard passed in ${(tAuth - tStart).toFixed(2)}ms`);
+
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
     const result = scanSchema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ success: false, error: 'Invalid request payload' }, { status: 400 });
+      return NextResponse.json({ success: false, code: 'INVALID_PAYLOAD', message: 'Invalid request payload' }, { status: 400 });
     }
 
     const { rawPayload, scannerDeviceHash } = result.data;
@@ -51,21 +56,30 @@ export async function POST(req: NextRequest) {
         riskReasons: [err instanceof Error ? err.message : 'Invalid QR parsing error'],
       });
       return NextResponse.json(
-        { success: false, error: err instanceof Error ? err.message : 'Invalid QR code' },
+        { success: false, code: 'INVALID_QR', message: err instanceof Error ? err.message : 'Invalid QR code' },
         { status: 400 }
       );
     }
 
+    const tParse = performance.now();
+    console.log(`[API/Scan] QR Parsing took ${(tParse - tAuth).toFixed(2)}ms. Username: ${parsedQr.normalizedUsername}`);
+
     await connectDB();
+    const tDBConnect = performance.now();
+    console.log(`[API/Scan] DB Connected in ${(tDBConnect - tParse).toFixed(2)}ms`);
 
     const identityKey = getInstagramIdentityKey(parsedQr.instagramUsername);
 
     // Find active campaign
     const campaign = await Campaign.findOne({ status: 'STARTED' });
+    const tCampaign = performance.now();
+    console.log(`[API/Scan] Campaign lookup took ${(tCampaign - tDBConnect).toFixed(2)}ms. Found: ${!!campaign}`);
+
     if (!campaign) {
+      console.log(`[API/Scan] WARNING: No active campaign found with status STARTED.`);
       return NextResponse.json(
-        { success: false, error: 'The challenge is currently unavailable.' },
-        { status: 400 }
+        { success: false, code: 'NO_ACTIVE_CAMPAIGN', message: 'The posing challenge is currently unavailable.' },
+        { status: 503 }
       );
     }
 
@@ -91,12 +105,16 @@ export async function POST(req: NextRequest) {
       },
       { new: true, upsert: true }
     );
+    const tUpsert = performance.now();
+    console.log(`[API/Scan] Customer upsert took ${(tUpsert - tCampaign).toFixed(2)}ms`);
 
     // Check participation
     const participation = await CampaignParticipation.findOne({
       campaignId: campaign._id,
       instagramIdentityKey: identityKey,
     });
+    const tPart = performance.now();
+    console.log(`[API/Scan] Participation lookup took ${(tPart - tUpsert).toFixed(2)}ms`);
 
     let scanResult: 'NEW' | 'ALREADY_PLAYED' = 'NEW';
     
@@ -116,6 +134,8 @@ export async function POST(req: NextRequest) {
       result: scanResult,
       riskLevel: 'LOW',
     });
+    const tLog = performance.now();
+    console.log(`[API/Scan] ScanEvent log took ${(tLog - tPart).toFixed(2)}ms. Total time: ${(tLog - tStart).toFixed(2)}ms`);
 
     if (scanResult === 'ALREADY_PLAYED') {
       return NextResponse.json({
@@ -153,7 +173,7 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error('Scan API Error:', error);
     return NextResponse.json(
-      { success: false, error: 'Unable to check customer details. Please try again.' },
+      { success: false, code: 'INTERNAL_ERROR', message: 'Unable to check customer details. Please try again.' },
       { status: 500 }
     );
   }
