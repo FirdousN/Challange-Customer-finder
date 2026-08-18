@@ -5,14 +5,18 @@ export interface ICustomer extends Document {
   instagramUserId?: string;
   instagramUsername?: string;
   instagramDisplayName?: string;
-  qrId?: string;
-  rawQrValue?: string;
-  qrPayloadHash?: string;
-  instagramUrl?: string;
+  instagramProfileUrl?: string;
+  instagramQrRawPayload?: string;
+  instagramQrPayloadHash?: string;
+  instagramQrQueryParams?: Record<string, string>;
+  instagramQrSource?: string;
   firstSeenAt: Date;
   lastSeenAt: Date;
-  totalCampaigns: number;
-  totalAttempts: number;
+  lastScannedQrAt?: Date;
+  scanCount: number;
+  firstParticipationAt?: Date;
+  lastParticipationAt?: Date;
+  participationCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,16 +37,19 @@ const customerSchema = new Schema<ICustomer>(
     instagramDisplayName: {
       type: String,
     },
-    qrId: {
+    instagramProfileUrl: {
       type: String,
     },
-    rawQrValue: {
+    instagramQrRawPayload: {
       type: String,
     },
-    qrPayloadHash: {
+    instagramQrPayloadHash: {
       type: String,
     },
-    instagramUrl: {
+    instagramQrQueryParams: {
+      type: Schema.Types.Mixed,
+    },
+    instagramQrSource: {
       type: String,
     },
     firstSeenAt: {
@@ -53,11 +60,20 @@ const customerSchema = new Schema<ICustomer>(
       type: Date,
       default: Date.now,
     },
-    totalCampaigns: {
-      type: Number,
-      default: 0,
+    lastScannedQrAt: {
+      type: Date,
     },
-    totalAttempts: {
+    scanCount: {
+      type: Number,
+      default: 1,
+    },
+    firstParticipationAt: {
+      type: Date,
+    },
+    lastParticipationAt: {
+      type: Date,
+    },
+    participationCount: {
       type: Number,
       default: 0,
     },
@@ -70,7 +86,7 @@ const customerSchema = new Schema<ICustomer>(
 // Indexes
 customerSchema.index({ instagramUsername: 1 });
 customerSchema.index({ instagramUserId: 1 });
-customerSchema.index({ qrPayloadHash: 1 });
+customerSchema.index({ instagramQrPayloadHash: 1 });
 
 export const Customer: Model<ICustomer> =
   mongoose.models.Customer || mongoose.model<ICustomer>('Customer', customerSchema);

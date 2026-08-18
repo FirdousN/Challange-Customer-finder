@@ -66,7 +66,7 @@ export default function StaffLoginForm() {
         throw new Error(data.error?.message || 'Invalid login credentials.');
       }
 
-      router.replace('/staff/qr-test');
+      router.replace('/staff/scanner');
       router.refresh();
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {

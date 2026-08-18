@@ -6,7 +6,7 @@ export default async function StaffLoginPage() {
   const session = await getSession();
   
   if (session.userId) {
-    redirect('/staff/qr-test');
+    redirect('/staff/scanner');
   }
 
   return (
