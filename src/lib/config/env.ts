@@ -7,6 +7,7 @@ export const env = {
   get SESSION_SECRET() {
     const secret = process.env.SESSION_SECRET;
     if (!secret) throw new Error("Environment variable SESSION_SECRET is missing");
+    if (secret.length < 32) throw new Error("Environment variable SESSION_SECRET must be at least 32 characters long");
     return secret;
   },
   get APP_URL() {
