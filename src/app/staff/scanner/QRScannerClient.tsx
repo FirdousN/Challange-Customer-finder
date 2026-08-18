@@ -9,7 +9,13 @@ export default function QRScannerClient() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [apiResult, setApiResult] = useState<ScanResultData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  
+  // Keep ref in sync
+  useEffect(() => {
+    isProcessingRef.current = isProcessing;
+  }, [isProcessing]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -35,30 +41,52 @@ export default function QRScannerClient() {
               qrbox: { width: 250, height: 250 },
             },
             async (decodedText) => {
-              if (isProcessing) return; // Prevent double-scanning
+              if (isProcessingRef.current) return; // Prevent double-scanning
               setIsProcessing(true);
 
+              // Pause scanner rather than fully stopping to prevent cleanup races
               if (scannerRef.current?.isScanning) {
-                scannerRef.current.stop().catch(console.error);
+                scannerRef.current.pause(true);
               }
 
               try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
                 const res = await fetch('/api/staff/scan', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ rawPayload: decodedText }),
+                  signal: controller.signal,
                 });
                 
+                clearTimeout(timeoutId);
+                
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                  throw new Error(`Invalid server response (Status: ${res.status})`);
+                }
+
                 const data = await res.json();
+                
                 if (isMounted) {
-                  setApiResult(data);
+                  if (!data.success) {
+                    setApiResult({
+                      success: false,
+                      result: 'ERROR',
+                      error: data.message || data.error || 'Unable to verify this QR code. Please try again.',
+                    });
+                  } else {
+                    setApiResult(data);
+                  }
                 }
               } catch (err: unknown) {
                 if (isMounted) {
+                  const isTimeout = err instanceof Error && err.name === 'AbortError';
                   setApiResult({
                     success: false,
                     result: 'ERROR',
-                    error: err instanceof Error ? err.message : 'Network error during scan processing',
+                    error: isTimeout ? 'Network connection timed out. Please try again.' : 'Network connection problem. Please try again.',
                   });
                 }
               } finally {
@@ -85,9 +113,8 @@ export default function QRScannerClient() {
       }
     };
 
-    if (!apiResult && !isProcessing) {
-      initializeScanner();
-    }
+    // Initialize immediately
+    initializeScanner();
 
     return () => {
       isMounted = false;
@@ -95,12 +122,18 @@ export default function QRScannerClient() {
         scannerRef.current.stop().catch(console.error);
       }
     };
-  }, [apiResult, isProcessing]);
+  }, []); // Empty dependency array prevents re-running and breaking isMounted
 
   const handleReset = () => {
     setApiResult(null);
     setErrorMsg(null);
     setIsProcessing(false);
+    
+    if (scannerRef.current) {
+      if (scannerRef.current.getState() === 3 /* Html5QrcodeScannerState.PAUSED */) {
+        scannerRef.current.resume();
+      }
+    }
   };
 
   return (
