@@ -9,14 +9,23 @@ export interface IAuditLog extends Document {
     | 'QR_SCANNED'
     | 'CUSTOMER_CREATED'
     | 'CUSTOMER_FOUND'
+    | 'CUSTOMER_VIEWED'
     | 'PARTICIPATION_CREATED'
     | 'PARTICIPATION_BLOCKED'
     | 'PARTICIPATION_REJECTED'
     | 'PARTICIPATION_ALLOWED'
+    | 'PARTICIPATION_CONFIRMED'
     | 'ADMIN_LOGIN'
+    | 'ADMIN_LOGOUT'
     | 'CAMPAIGN_CREATED'
     | 'CAMPAIGN_UPDATED'
+    | 'CAMPAIGN_STARTED'
+    | 'CAMPAIGN_PAUSED'
+    | 'CAMPAIGN_ENDED'
     | 'STAFF_CREATED'
+    | 'STAFF_UPDATED'
+    | 'STAFF_ACTIVATED'
+    | 'STAFF_DEACTIVATED'
     | 'STAFF_DISABLED';
   entityType?: string;
   entityId?: string;
@@ -42,14 +51,23 @@ const auditLogSchema = new Schema<IAuditLog>(
         'QR_SCANNED',
         'CUSTOMER_CREATED',
         'CUSTOMER_FOUND',
+        'CUSTOMER_VIEWED',
         'PARTICIPATION_CREATED',
         'PARTICIPATION_BLOCKED',
         'PARTICIPATION_REJECTED',
         'PARTICIPATION_ALLOWED',
+        'PARTICIPATION_CONFIRMED',
         'ADMIN_LOGIN',
+        'ADMIN_LOGOUT',
         'CAMPAIGN_CREATED',
         'CAMPAIGN_UPDATED',
+        'CAMPAIGN_STARTED',
+        'CAMPAIGN_PAUSED',
+        'CAMPAIGN_ENDED',
         'STAFF_CREATED',
+        'STAFF_UPDATED',
+        'STAFF_ACTIVATED',
+        'STAFF_DEACTIVATED',
         'STAFF_DISABLED',
       ],
       required: true,

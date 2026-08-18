@@ -9,6 +9,7 @@
     "lint": "eslint",
     "seed": "npx tsx src/scripts/seed.ts",
     "seed:dev-staff": "tsx src/scripts/seed-dev-staff.ts",
+    "seed:prod-campaign": "tsx src/scripts/seed-prod-campaign.ts",
     "seed:participation": "tsx src/scripts/seed-participation.ts",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -17,6 +18,7 @@
     "bcryptjs": "^3.0.3",
     "html5-qrcode": "^2.3.8",
     "iron-session": "^8.0.4",
+    "lucide-react": "^1.32.0",
     "mongoose": "^8.14.3",
     "next": "16.3.1",
     "react": "19.2.8",

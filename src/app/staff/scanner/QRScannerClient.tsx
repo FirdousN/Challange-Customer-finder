@@ -138,14 +138,12 @@ export default function QRScannerClient() {
 
   return (
     <div className="w-full">
-      {!apiResult && !errorMsg && hasCameraPermission !== false && (
-        <div className="mb-4">
-          <div id="qr-reader" className="w-full rounded overflow-hidden shadow-sm border bg-black"></div>
-          <p className="text-sm text-center text-gray-500 mt-2">
-            {isProcessing ? 'Processing QR code...' : 'Looking for Instagram QR code...'}
-          </p>
-        </div>
-      )}
+      <div className={`mb-4 ${(!apiResult && !errorMsg && hasCameraPermission !== false) ? 'block' : 'hidden'}`}>
+        <div id="qr-reader" className="w-full rounded overflow-hidden shadow-sm border bg-black"></div>
+        <p className="text-sm text-center text-gray-500 mt-2">
+          {isProcessing ? 'Processing QR code...' : 'Looking for Instagram QR code...'}
+        </p>
+      </div>
 
       {errorMsg && (
         <div className="bg-red-50 text-red-700 p-4 rounded-md mb-4 border border-red-200">
@@ -164,22 +162,6 @@ export default function QRScannerClient() {
         <ResultDisplay data={apiResult} onReset={handleReset} />
       )}
 
-      <div className="mt-8 pt-4 border-t border-gray-200">
-        <button
-          onClick={async () => {
-            try {
-              await fetch('/api/auth/logout', { method: 'POST' });
-              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-              window.location.href = '/staff/login';
-            } catch (err) {
-              console.error('Logout failed', err);
-            }
-          }}
-          className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded font-medium transition-colors"
-        >
-          Logout
-        </button>
-      </div>
     </div>
   );
 }
