@@ -2,15 +2,16 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
+import ResultDisplay, { ScanResultData } from '@/components/scanner/ResultDisplay';
 
 export default function QRScannerClient() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [scanResult, setScanResult] = useState<{ value: string; format?: string } | null>(null);
+  const [apiResult, setApiResult] = useState<ScanResultData | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    // Only run on client
     if (typeof window === 'undefined') return;
 
     let isMounted = true;
@@ -33,21 +34,41 @@ export default function QRScannerClient() {
               fps: 10,
               qrbox: { width: 250, height: 250 },
             },
-            (decodedText, decodedResult) => {
-              // On successful scan
+            async (decodedText) => {
+              if (isProcessing) return; // Prevent double-scanning
+              setIsProcessing(true);
+
               if (scannerRef.current?.isScanning) {
                 scannerRef.current.stop().catch(console.error);
               }
-              if (isMounted) {
-                const formatName = decodedResult?.result?.format?.formatName || 'Unknown';
-                setScanResult({
-                  value: decodedText,
-                  format: formatName,
+
+              try {
+                const res = await fetch('/api/staff/scan', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ rawPayload: decodedText }),
                 });
+                
+                const data = await res.json();
+                if (isMounted) {
+                  setApiResult(data);
+                }
+              } catch (err: unknown) {
+                if (isMounted) {
+                  setApiResult({
+                    success: false,
+                    result: 'ERROR',
+                    error: err instanceof Error ? err.message : 'Network error during scan processing',
+                  });
+                }
+              } finally {
+                if (isMounted) {
+                  setIsProcessing(false);
+                }
               }
             },
             (_errorMessage) => {
-              // html5-qrcode calls this a lot when no QR is in frame. Ignore it.
+              // Ignore standard scanning errors when no QR is found
             }
           );
         } else {
@@ -64,7 +85,9 @@ export default function QRScannerClient() {
       }
     };
 
-    initializeScanner();
+    if (!apiResult && !isProcessing) {
+      initializeScanner();
+    }
 
     return () => {
       isMounted = false;
@@ -72,22 +95,22 @@ export default function QRScannerClient() {
         scannerRef.current.stop().catch(console.error);
       }
     };
-  }, []);
+  }, [apiResult, isProcessing]);
 
   const handleReset = () => {
-    setScanResult(null);
+    setApiResult(null);
     setErrorMsg(null);
-    setHasCameraPermission(null);
-    // Force reload to cleanly restart the scanner stream
-    window.location.reload();
+    setIsProcessing(false);
   };
 
   return (
     <div className="w-full">
-      {!scanResult && !errorMsg && hasCameraPermission !== false && (
+      {!apiResult && !errorMsg && hasCameraPermission !== false && (
         <div className="mb-4">
           <div id="qr-reader" className="w-full rounded overflow-hidden shadow-sm border bg-black"></div>
-          <p className="text-sm text-center text-gray-500 mt-2">Looking for QR code...</p>
+          <p className="text-sm text-center text-gray-500 mt-2">
+            {isProcessing ? 'Processing QR code...' : 'Looking for Instagram QR code...'}
+          </p>
         </div>
       )}
 
@@ -104,35 +127,8 @@ export default function QRScannerClient() {
         </div>
       )}
 
-      {scanResult && (
-        <div className="bg-green-50 p-4 rounded-md border border-green-200 break-words">
-          <h3 className="font-bold text-green-800 mb-3">Scan Successful</h3>
-          
-          <div className="mb-2">
-            <span className="text-xs font-semibold uppercase text-green-600 block">Raw Decoded Value:</span>
-            <code className="bg-white px-2 py-1 rounded border border-green-100 text-sm block mt-1 break-all whitespace-pre-wrap">
-              {scanResult.value}
-            </code>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div>
-              <span className="text-xs font-semibold uppercase text-green-600 block">Length:</span>
-              <span className="font-mono text-gray-800">{scanResult.value.length}</span>
-            </div>
-            <div>
-              <span className="text-xs font-semibold uppercase text-green-600 block">Type:</span>
-              <span className="font-mono text-gray-800">{scanResult.format}</span>
-            </div>
-          </div>
-
-          <button 
-            onClick={handleReset}
-            className="w-full mt-6 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors"
-          >
-            Scan Another
-          </button>
-        </div>
+      {apiResult && (
+        <ResultDisplay data={apiResult} onReset={handleReset} />
       )}
 
       <div className="mt-8 pt-4 border-t border-gray-200">
@@ -140,6 +136,7 @@ export default function QRScannerClient() {
           onClick={async () => {
             try {
               await fetch('/api/auth/logout', { method: 'POST' });
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = '/staff/login';
             } catch (err) {
               console.error('Logout failed', err);
