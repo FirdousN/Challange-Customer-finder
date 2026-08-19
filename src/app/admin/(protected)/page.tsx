@@ -7,20 +7,19 @@ import {
   CheckCircle, 
   AlertTriangle,
   PlayCircle,
-  Megaphone
+  CopyX,
+  UserPlus
 } from 'lucide-react';
 
 interface DashboardData {
   todaysScans: number;
-  todaysPlayers: number;
+  todaysUniqueCustomers: number;
+  todaysFirstTimePlayers: number;
+  todaysAlreadyPlayedAttempts: number;
   totalCustomers: number;
-  alreadyPlayed: number;
-  eligiblePlayers: number;
+  totalPlayedCustomers: number;
+  totalDuplicateScans: number;
   suspiciousScans: number;
-  activeCampaign: {
-    name: string;
-    status: string;
-  } | null;
 }
 
 function StatCard({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: React.ElementType, color: string }) {
@@ -86,24 +85,9 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">Overview</h1>
-        
-        {data.activeCampaign ? (
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            {data.activeCampaign.name}
-          </div>
-        ) : (
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium border border-yellow-200">
-            <AlertTriangle size={14} />
-            No Active Campaign
-          </div>
-        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Today's Scans" 
           value={data.todaysScans} 
@@ -111,34 +95,51 @@ export default function AdminDashboardPage() {
           color="bg-blue-100 text-blue-600" 
         />
         <StatCard 
-          title="Today's Players" 
-          value={data.todaysPlayers} 
+          title="Today's Unique Users" 
+          value={data.todaysUniqueCustomers} 
+          icon={Users} 
+          color="bg-indigo-100 text-indigo-600" 
+        />
+        <StatCard 
+          title="Today's First Plays" 
+          value={data.todaysFirstTimePlayers} 
           icon={PlayCircle} 
           color="bg-green-100 text-green-600" 
+        />
+        <StatCard 
+          title="Today's Already Played" 
+          value={data.todaysAlreadyPlayedAttempts} 
+          icon={CopyX} 
+          color="bg-orange-100 text-orange-600" 
+        />
+      </div>
+      
+      <h2 className="text-xl font-bold tracking-tight text-gray-900 mt-8 mb-4">All-Time Statistics</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Total Customers" 
+          value={data.totalCustomers} 
+          icon={UserPlus} 
+          color="bg-purple-100 text-purple-600" 
+        />
+        <StatCard 
+          title="Total Played" 
+          value={data.totalPlayedCustomers} 
+          icon={CheckCircle} 
+          color="bg-emerald-100 text-emerald-600" 
+        />
+        <StatCard 
+          title="Total Duplicate Scans" 
+          value={data.totalDuplicateScans} 
+          icon={CopyX} 
+          color="bg-orange-100 text-orange-600" 
         />
         <StatCard 
           title="Suspicious/Rejected" 
           value={data.suspiciousScans} 
           icon={AlertTriangle} 
           color="bg-red-100 text-red-600" 
-        />
-        <StatCard 
-          title="Total Customers" 
-          value={data.totalCustomers} 
-          icon={Users} 
-          color="bg-purple-100 text-purple-600" 
-        />
-        <StatCard 
-          title="Eligible (Unplayed)" 
-          value={data.eligiblePlayers} 
-          icon={CheckCircle} 
-          color="bg-emerald-100 text-emerald-600" 
-        />
-        <StatCard 
-          title="Already Played" 
-          value={data.alreadyPlayed} 
-          icon={Megaphone} 
-          color="bg-orange-100 text-orange-600" 
         />
       </div>
     </div>

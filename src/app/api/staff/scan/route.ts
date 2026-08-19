@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { parseInstagramQr } from '@/lib/qr/parser';
 import { getInstagramIdentityKey } from '@/lib/identity/instagram';
 import { Customer } from '@/models/Customer';
-import { Campaign } from '@/models/Campaign';
-import { CampaignParticipation } from '@/models/CampaignParticipation';
 import { ScanEvent } from '@/models/ScanEvent';
 
 const scanSchema = z.object({
@@ -16,7 +14,6 @@ const scanSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const tStart = performance.now();
-  console.log(`[API/Scan] Request received at ${new Date().toISOString()}`);
   try {
     let user;
     try {
@@ -24,9 +21,6 @@ export async function POST(req: NextRequest) {
     } catch (authError: unknown) {
       return NextResponse.json({ success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' }, { status: 401 });
     }
-
-    const tAuth = performance.now();
-    console.log(`[API/Scan] Auth guard passed in ${(tAuth - tStart).toFixed(2)}ms`);
 
     if (!user) {
       return NextResponse.json({ success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' }, { status: 401 });
@@ -61,72 +55,79 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const tParse = performance.now();
-    console.log(`[API/Scan] QR Parsing took ${(tParse - tAuth).toFixed(2)}ms. Username: ${parsedQr.normalizedUsername}`);
-
     await connectDB();
-    const tDBConnect = performance.now();
-    console.log(`[API/Scan] DB Connected in ${(tDBConnect - tParse).toFixed(2)}ms`);
 
     const identityKey = getInstagramIdentityKey(parsedQr.instagramUsername);
 
-    // Find active campaign
-    const campaign = await Campaign.findOne({ status: 'STARTED' });
-    const tCampaign = performance.now();
-    console.log(`[API/Scan] Campaign lookup took ${(tCampaign - tDBConnect).toFixed(2)}ms. Found: ${!!campaign}`);
+    // Attempt to upsert the Customer.
+    // We use $setOnInsert to set firstPlayedAt only if the customer is newly created.
+    // However, if the customer exists but has NOT played (which shouldn't happen in this new logic but could from old data),
+    // we would need to handle that. To be safe, let's first check if the customer exists.
+    // We'll use a transaction if possible, or just atomic updates.
+    
+    // Let's use findOneAndUpdate to try to find and update an existing customer.
+    let customer = await Customer.findOne({ instagramIdentityKey: identityKey }).populate('playedByStaffId', 'name');
+    let scanResult: 'NEW' | 'ALREADY_PLAYED' = 'NEW';
+    let isFirstTime = false;
 
-    if (!campaign) {
-      console.log(`[API/Scan] WARNING: No active campaign found with status STARTED.`);
-      return NextResponse.json(
-        { success: false, code: 'NO_ACTIVE_CAMPAIGN', message: 'The posing challenge is currently unavailable.' },
-        { status: 503 }
-      );
-    }
+    const now = new Date();
 
-    // Upsert Customer
-    const customer = await Customer.findOneAndUpdate(
-      { instagramIdentityKey: identityKey },
-      {
-        $set: {
+    if (!customer) {
+      // Create new customer
+      try {
+        customer = await Customer.create({
+          instagramIdentityKey: identityKey,
           instagramUsername: parsedQr.normalizedUsername,
           instagramQrRawPayload: parsedQr.rawPayload,
           instagramQrPayloadHash: parsedQr.payloadHash,
           instagramQrQueryParams: parsedQr.queryParams,
           instagramQrSource: parsedQr.utm_source || undefined,
           instagramProfileUrl: `https://www.instagram.com/${parsedQr.normalizedUsername}`,
-          lastSeenAt: new Date(),
-          lastScannedQrAt: new Date(),
-        },
-        $inc: { scanCount: 1 },
-        $setOnInsert: {
-          firstSeenAt: new Date(),
-          participationCount: 0,
+          igsh: parsedQr.igsh || undefined,
+          firstSeenAt: now,
+          lastSeenAt: now,
+          lastScannedQrAt: now,
+          scanCount: 1,
+          firstPlayedAt: now,
+          lastPlayedAt: now,
+          playedByStaffId: user._id,
+          participationCount: 1, // for historical compatibility
+        });
+        isFirstTime = true;
+      } catch (createError: unknown) {
+        // If duplicate key error, someone else just created it
+        if ((createError as { code?: number }).code === 11000) {
+          customer = await Customer.findOne({ instagramIdentityKey: identityKey }).populate('playedByStaffId', 'name');
+          if (!customer) throw createError;
+        } else {
+          throw createError;
         }
-      },
-      { new: true, upsert: true }
-    );
-    const tUpsert = performance.now();
-    console.log(`[API/Scan] Customer upsert took ${(tUpsert - tCampaign).toFixed(2)}ms`);
+      }
+    }
 
-    // Check participation
-    const participation = await CampaignParticipation.findOne({
-      campaignId: campaign._id,
-      instagramIdentityKey: identityKey,
-    });
-    const tPart = performance.now();
-    console.log(`[API/Scan] Participation lookup took ${(tPart - tUpsert).toFixed(2)}ms`);
-
-    let scanResult: 'NEW' | 'ALREADY_PLAYED' = 'NEW';
-    
-    if (participation) {
+    // If customer already existed (or we caught a race condition duplicate key)
+    if (!isFirstTime) {
       scanResult = 'ALREADY_PLAYED';
+      
+      // Still update their scan counts and last seen info, but don't change firstPlayedAt
+      customer = await Customer.findOneAndUpdate(
+        { _id: customer._id },
+        {
+          $set: {
+            lastSeenAt: now,
+            lastScannedQrAt: now,
+            lastPlayedAt: now,
+          },
+          $inc: { scanCount: 1 }
+        },
+        { new: true }
+      ).populate('playedByStaffId', 'name');
     }
 
     // Log the scan event
     await ScanEvent.create({
-      campaignId: campaign._id,
       staffId: user._id,
-      customerId: customer._id,
+      customerId: customer!._id,
       instagramIdentityKey: identityKey,
       rawQrValue: parsedQr.rawPayload,
       qrPayloadHash: parsedQr.payloadHash,
@@ -134,24 +135,20 @@ export async function POST(req: NextRequest) {
       result: scanResult,
       riskLevel: 'LOW',
     });
-    const tLog = performance.now();
-    console.log(`[API/Scan] ScanEvent log took ${(tLog - tPart).toFixed(2)}ms. Total time: ${(tLog - tStart).toFixed(2)}ms`);
 
     if (scanResult === 'ALREADY_PLAYED') {
       return NextResponse.json({
         success: true,
         result: scanResult,
         customer: {
-          id: customer._id,
-          instagramUsername: customer.instagramUsername,
-          firstSeenAt: customer.firstSeenAt,
-          scanCount: customer.scanCount,
+          id: customer!._id,
+          instagramUsername: customer!.instagramUsername,
+          firstSeenAt: customer!.firstSeenAt,
+          scanCount: customer!.scanCount,
         },
         participation: {
-          playedAt: participation?.playedAt,
-          chancesEarned: participation?.chancesEarned,
-          chancesUsed: participation?.chancesUsed,
-          status: participation?.status,
+          playedAt: customer!.firstPlayedAt,
+          playedByStaffName: (customer!.playedByStaffId as { name?: string })?.name || 'Unknown Staff',
         },
       });
     }
@@ -160,14 +157,17 @@ export async function POST(req: NextRequest) {
       success: true,
       result: scanResult,
       customer: {
-        id: customer._id,
-        instagramUsername: customer.instagramUsername,
-        instagramProfileUrl: customer.instagramProfileUrl,
-        firstSeenAt: customer.firstSeenAt,
-        lastSeenAt: customer.lastSeenAt,
-        scanCount: customer.scanCount,
+        id: customer!._id,
+        instagramUsername: customer!.instagramUsername,
+        instagramProfileUrl: customer!.instagramProfileUrl,
+        firstSeenAt: customer!.firstSeenAt,
+        lastSeenAt: customer!.lastSeenAt,
+        scanCount: customer!.scanCount,
       },
-      participation: null,
+      participation: {
+        playedAt: customer!.firstPlayedAt,
+        playedByStaffName: user.name || 'Unknown Staff',
+      },
     });
 
   } catch (error: unknown) {

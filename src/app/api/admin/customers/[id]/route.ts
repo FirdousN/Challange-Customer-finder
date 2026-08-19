@@ -3,7 +3,6 @@ import { requireRole } from '@/lib/auth/guards';
 import { connectDB } from '@/lib/db/mongoose';
 import { Customer } from '@/models/Customer';
 import { ScanEvent } from '@/models/ScanEvent';
-import { CampaignParticipation } from '@/models/CampaignParticipation';
 import { Types } from 'mongoose';
 import { logAdminAction } from '@/lib/audit/logger';
 
@@ -39,10 +38,9 @@ export async function GET(
       );
     }
 
-    // Fetch related participations and recent scans concurrently
-    const [participations, recentScans] = await Promise.all([
-      CampaignParticipation.find({ customerId: customer._id }).sort({ createdAt: -1 }).populate('campaignId', 'name').lean(),
-      ScanEvent.find({ customerId: customer._id }).sort({ createdAt: -1 }).limit(10).populate('staffId', 'name').populate('campaignId', 'name').lean()
+    // Fetch recent scans concurrently
+    const [recentScans] = await Promise.all([
+      ScanEvent.find({ customerId: customer._id }).sort({ createdAt: -1 }).limit(10).populate('staffId', 'name').lean()
     ]);
 
     // Audit log this view
@@ -59,7 +57,6 @@ export async function GET(
       success: true,
       data: {
         customer,
-        participations,
         recentScans
       }
     });

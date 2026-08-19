@@ -3,8 +3,9 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, User, QrCode, Clock, ShieldCheck, Activity } from 'lucide-react';
+import { ChevronLeft, User, QrCode, Clock, Activity } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { formatIST } from '@/lib/utils/date';
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -34,19 +35,6 @@ export default function CustomerDetailPage() {
     if (id) fetchCustomer();
   }, [id]);
 
-  const formatISTDate = (isoString: string) => {
-    if (!isoString) return 'N/A';
-    return new Date(isoString).toLocaleString('en-US', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -68,7 +56,7 @@ export default function CustomerDetailPage() {
     );
   }
 
-  const { customer, participations, recentScans } = data;
+  const { customer, recentScans } = data;
 
   return (
     <div className="space-y-6">
@@ -81,9 +69,9 @@ export default function CustomerDetailPage() {
             <User className="text-gray-400" />
             @{customer.instagramUsername}
           </h1>
-          {customer.participationCount > 0 ? (
+          {customer.firstPlayedAt ? (
             <span className="px-3 py-1 bg-green-100 text-green-800 font-medium rounded-full text-sm">
-              Played ({customer.participationCount})
+              Played
             </span>
           ) : (
             <span className="px-3 py-1 bg-gray-100 text-gray-800 font-medium rounded-full text-sm">
@@ -139,7 +127,7 @@ export default function CustomerDetailPage() {
             <div className="grid grid-cols-1 text-gray-500 mt-2">
               <span className="mb-1">Raw Payload</span>
               <div className="bg-gray-50 p-2 rounded border border-gray-200 font-mono text-xs break-all text-gray-700 max-h-24 overflow-y-auto">
-                {customer.rawQrPayload}
+                {customer.instagramQrRawPayload}
               </div>
             </div>
           </div>
@@ -155,11 +143,11 @@ export default function CustomerDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded">
                 <p className="text-xs text-gray-500">First Scanned</p>
-                <p className="font-medium text-gray-900 mt-1">{formatISTDate(customer.firstScannedAt)}</p>
+                <p className="font-medium text-gray-900 mt-1">{formatIST(customer.firstSeenAt)}</p>
               </div>
               <div className="bg-gray-50 p-3 rounded">
                 <p className="text-xs text-gray-500">Last Scanned</p>
-                <p className="font-medium text-gray-900 mt-1">{formatISTDate(customer.lastScannedAt)}</p>
+                <p className="font-medium text-gray-900 mt-1">{formatIST(customer.lastSeenAt)}</p>
               </div>
             </div>
             <div className="grid grid-cols-3 text-gray-500 pt-2 border-t border-gray-100">
@@ -167,35 +155,10 @@ export default function CustomerDetailPage() {
               <span className="col-span-1 font-bold text-gray-900 text-right">{customer.scanCount}</span>
             </div>
             <div className="grid grid-cols-3 text-gray-500">
-              <span className="col-span-2">Total Participations</span>
-              <span className="col-span-1 font-bold text-gray-900 text-right">{customer.participationCount}</span>
+              <span className="col-span-2">First Played At</span>
+              <span className="col-span-1 font-medium text-gray-900 text-right">{formatIST(customer.firstPlayedAt)}</span>
             </div>
           </div>
-        </div>
-
-        {/* Participation History */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-bold border-b border-gray-100 pb-2 mb-4 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-gray-500" />
-            Participation Records
-          </h2>
-          {participations.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">No participation records found.</p>
-          ) : (
-            <div className="space-y-3">
-              {participations.map((p: any) => (
-                <div key={p._id} className="border border-gray-100 rounded p-3 bg-gray-50">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium text-sm text-gray-900">{p.campaignId?.name || 'Unknown Campaign'}</span>
-                    <span className="px-2 py-0.5 bg-green-200 text-green-800 text-[10px] font-bold rounded uppercase">
-                      {p.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500">{formatISTDate(p.createdAt)}</p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
       </div>
@@ -213,31 +176,29 @@ export default function CustomerDetailPage() {
                 <th className="px-4 py-3 font-medium">Time (IST)</th>
                 <th className="px-4 py-3 font-medium">Result</th>
                 <th className="px-4 py-3 font-medium">Staff</th>
-                <th className="px-4 py-3 font-medium">Campaign</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {recentScans.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-gray-500 italic">
+                  <td colSpan={3} className="px-4 py-6 text-center text-gray-500 italic">
                     No scans found.
                   </td>
                 </tr>
               ) : (
                 recentScans.map((scan: any) => (
                   <tr key={scan._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-900">{formatISTDate(scan.createdAt)}</td>
+                    <td className="px-4 py-3 text-gray-900">{formatIST(scan.createdAt)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        scan.result === 'NEW' ? 'bg-blue-100 text-blue-800' :
-                        scan.result === 'ALREADY_PLAYED' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                        scan.result === 'NEW' ? 'bg-green-100 text-green-800' :
+                        scan.result === 'ALREADY_PLAYED' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
                       }`}>
                         {scan.result}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{scan.staffId?.name || 'System'}</td>
-                    <td className="px-4 py-3 text-gray-600">{scan.campaignId?.name || 'N/A'}</td>
                   </tr>
                 ))
               )}

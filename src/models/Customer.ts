@@ -10,13 +10,15 @@ export interface ICustomer extends Document {
   instagramQrPayloadHash?: string;
   instagramQrQueryParams?: Record<string, string>;
   instagramQrSource?: string;
+  igsh?: string;
   firstSeenAt: Date;
   lastSeenAt: Date;
   lastScannedQrAt?: Date;
   scanCount: number;
-  firstParticipationAt?: Date;
-  lastParticipationAt?: Date;
-  participationCount: number;
+  firstPlayedAt?: Date;
+  lastPlayedAt?: Date;
+  playedByStaffId?: mongoose.Types.ObjectId;
+  participationCount: number; // Keeping this for historical compatibility
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +54,9 @@ const customerSchema = new Schema<ICustomer>(
     instagramQrSource: {
       type: String,
     },
+    igsh: {
+      type: String,
+    },
     firstSeenAt: {
       type: Date,
       default: Date.now,
@@ -67,11 +72,15 @@ const customerSchema = new Schema<ICustomer>(
       type: Number,
       default: 1,
     },
-    firstParticipationAt: {
+    firstPlayedAt: {
       type: Date,
     },
-    lastParticipationAt: {
+    lastPlayedAt: {
       type: Date,
+    },
+    playedByStaffId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     participationCount: {
       type: Number,

@@ -3,15 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { formatIST } from '@/lib/utils/date';
 
 interface Customer {
   _id: string;
   instagramUsername: string;
   instagramProfileUrl: string;
-  firstScannedAt: string;
-  lastScannedAt: string;
+  firstScannedAt?: string;
+  lastScannedAt?: string;
+  firstPlayedAt?: string;
   scanCount: number;
-  participationCount: number;
 }
 
 export default function CustomersPage() {
@@ -58,19 +59,6 @@ export default function CustomersPage() {
     e.preventDefault();
     setPage(1);
     fetchCustomers();
-  };
-
-  const formatISTDate = (isoString: string) => {
-    if (!isoString) return 'N/A';
-    return new Date(isoString).toLocaleString('en-US', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
   };
 
   return (
@@ -126,7 +114,7 @@ export default function CustomersPage() {
                 <th className="px-6 py-3 font-medium">Instagram</th>
                 <th className="px-6 py-3 font-medium">Status</th>
                 <th className="px-6 py-3 font-medium">Scans</th>
-                <th className="px-6 py-3 font-medium">First Scanned (IST)</th>
+                <th className="px-6 py-3 font-medium">First Played (IST)</th>
                 <th className="px-6 py-3 font-medium">Last Scanned (IST)</th>
                 <th className="px-6 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -159,9 +147,9 @@ export default function CustomersPage() {
                       </a>
                     </td>
                     <td className="px-6 py-4">
-                      {c.participationCount > 0 ? (
+                      {c.firstPlayedAt ? (
                         <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                          Played ({c.participationCount})
+                          Played
                         </span>
                       ) : (
                         <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
@@ -170,8 +158,8 @@ export default function CustomersPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">{c.scanCount}</td>
-                    <td className="px-6 py-4 text-gray-500">{formatISTDate(c.firstScannedAt)}</td>
-                    <td className="px-6 py-4 text-gray-500">{formatISTDate(c.lastScannedAt)}</td>
+                    <td className="px-6 py-4 text-gray-500">{formatIST(c.firstPlayedAt)}</td>
+                    <td className="px-6 py-4 text-gray-500">{formatIST(c.lastScannedAt)}</td>
                     <td className="px-6 py-4 text-right">
                       <Link 
                         href={`/admin/customers/${c._id}`}
