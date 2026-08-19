@@ -31,9 +31,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (status === 'played') {
-      query.participationCount = { $gt: 0 };
+      query.firstPlayedAt = { $exists: true };
     } else if (status === 'unplayed') {
-      query.participationCount = { $eq: 0 };
+      query.firstPlayedAt = { $exists: false };
     }
 
     const skip = (page - 1) * limit;

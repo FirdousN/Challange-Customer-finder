@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import Link from 'next/link';
+import { formatIST } from '@/lib/utils/date';
 
 interface ScanEvent {
   _id: string;
@@ -16,9 +17,6 @@ interface ScanEvent {
   staffId?: {
     name: string;
     email: string;
-  };
-  campaignId?: {
-    name: string;
   };
 }
 
@@ -60,18 +58,7 @@ export default function ScansPage() {
     fetchScans();
   }, [page, statusFilter]);
 
-  const formatISTDate = (isoString: string) => {
-    if (!isoString) return 'N/A';
-    return new Date(isoString).toLocaleString('en-US', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+  // Removed local formatISTDate
 
   const getResultColor = (result: string) => {
     switch (result) {
@@ -124,26 +111,25 @@ export default function ScansPage() {
                 <th className="px-6 py-3 font-medium">Result</th>
                 <th className="px-6 py-3 font-medium">Customer</th>
                 <th className="px-6 py-3 font-medium">Staff</th>
-                <th className="px-6 py-3 font-medium">Campaign</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                     Loading scans...
                   </td>
                 </tr>
               ) : scans.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                     No scans found.
                   </td>
                 </tr>
               ) : (
                 scans.map((scan) => (
                   <tr key={scan._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-gray-900">{formatISTDate(scan.createdAt)}</td>
+                    <td className="px-6 py-4 text-gray-900">{formatIST(scan.createdAt)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getResultColor(scan.result)}`}>
                         {scan.result}
@@ -160,9 +146,6 @@ export default function ScansPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-600">
                       {scan.staffId ? scan.staffId.name : <span className="text-gray-400 italic">System</span>}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {scan.campaignId ? scan.campaignId.name : <span className="text-gray-400 italic">N/A</span>}
                     </td>
                   </tr>
                 ))

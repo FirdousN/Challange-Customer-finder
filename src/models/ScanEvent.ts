@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IScanEvent extends Document {
-  campaignId?: mongoose.Types.ObjectId;
   staffId?: mongoose.Types.ObjectId;
   customerId?: mongoose.Types.ObjectId;
   instagramIdentityKey?: string;
@@ -17,10 +16,6 @@ export interface IScanEvent extends Document {
 
 const scanEventSchema = new Schema<IScanEvent>(
   {
-    campaignId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Campaign',
-    },
     staffId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -71,7 +66,6 @@ const scanEventSchema = new Schema<IScanEvent>(
 );
 
 // Indexes
-scanEventSchema.index({ campaignId: 1, createdAt: 1 });
 scanEventSchema.index({ instagramIdentityKey: 1 });
 scanEventSchema.index({ scannerDeviceHash: 1 });
 

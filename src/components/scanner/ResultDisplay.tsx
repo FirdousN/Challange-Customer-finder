@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatIST } from '@/lib/utils/date';
 
 export interface ScanResultData {
   success: boolean;
@@ -14,33 +15,13 @@ export interface ScanResultData {
   };
   participation?: {
     playedAt: string;
-    chancesEarned: number;
-    chancesUsed: number;
-    status: string;
+    playedByStaffName: string;
   };
 }
 
 interface ResultDisplayProps {
   data: ScanResultData;
   onReset: () => void;
-}
-
-function formatIST(dateString?: string) {
-  if (!dateString) return 'N/A';
-  try {
-    const d = new Date(dateString);
-    return new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(d);
-  } catch {
-    return 'Invalid Date';
-  }
 }
 
 export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
@@ -56,7 +37,7 @@ export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
           onClick={onReset}
           className="w-full py-3 px-4 bg-black text-white dark:bg-white dark:text-black rounded-md font-medium"
         >
-          SCAN ANOTHER
+          TRY AGAIN
         </button>
       </div>
     );
@@ -67,7 +48,7 @@ export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
 
   return (
     <div
-      className={`border rounded-lg p-6 space-y-6 ${
+      className={`border rounded-lg p-6 space-y-6 shadow-sm ${
         isAlreadyPlayed
           ? 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-800'
           : 'bg-green-50 dark:bg-green-900/10 border-green-300 dark:border-green-800'
@@ -79,46 +60,44 @@ export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
             isAlreadyPlayed ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
           }`}
         >
-          {isAlreadyPlayed ? 'ALREADY PLAYED' : 'ELIGIBLE TO PLAY'}
+          {isAlreadyPlayed ? 'ALREADY PLAYED' : 'CUSTOMER VERIFIED'}
         </h2>
+        
         {customer && (
-          <div className="text-lg font-medium text-gray-900 dark:text-white">
+          <div className="text-xl font-medium text-gray-900 dark:text-white mt-1">
             @{customer.instagramUsername}
           </div>
         )}
       </div>
 
-      {customer && (
-        <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
-          {isAlreadyPlayed && participation ? (
-            <>
-              <div className="flex justify-between py-1 border-b border-gray-200 dark:border-zinc-700">
-                <span className="font-semibold text-red-600 dark:text-red-400">Previous Challenge:</span>
-                <span>{formatIST(participation.playedAt)}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-200 dark:border-zinc-700">
-                <span className="font-semibold">Chances:</span>
-                <span>{participation.chancesEarned}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-gray-200 dark:border-zinc-700">
-                <span className="font-semibold">Used:</span>
-                <span>{participation.chancesUsed}</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex justify-between py-1 border-b border-gray-200 dark:border-zinc-700">
-              <span className="font-semibold text-green-600 dark:text-green-400">Status:</span>
-              <span>Not Played</span>
+      {customer && participation && (
+        <div className="space-y-3 text-[15px] text-gray-800 dark:text-gray-200 bg-white dark:bg-zinc-900/50 rounded p-4 border border-gray-100 dark:border-zinc-800">
+          <div className="flex justify-between py-1 border-b border-gray-100 dark:border-zinc-800 pb-2">
+            <span className="font-semibold">Status:</span>
+            <span className={`font-bold ${isAlreadyPlayed ? 'text-red-600' : 'text-green-600'}`}>
+              {isAlreadyPlayed ? 'ALREADY PLAYED' : 'ELIGIBLE / PLAY RECORDED'}
+            </span>
+          </div>
+
+          <div className="flex justify-between py-1 border-b border-gray-100 dark:border-zinc-800 pb-2">
+            <span className="font-semibold">{isAlreadyPlayed ? 'Played on:' : 'Scanned:'}</span>
+            <span>{formatIST(participation.playedAt)}</span>
+          </div>
+
+          <div className="flex justify-between py-1 border-b border-gray-100 dark:border-zinc-800 pb-2">
+            <span className="font-semibold">{isAlreadyPlayed ? 'Played by:' : 'Staff:'}</span>
+            <span>{participation.playedByStaffName}</span>
+          </div>
+
+          {isAlreadyPlayed && (
+            <div className="flex justify-between py-1 border-b border-gray-100 dark:border-zinc-800 pb-2">
+              <span className="font-semibold">First scan:</span>
+              <span>{formatIST(customer.firstSeenAt)}</span>
             </div>
           )}
 
-          <div className="flex justify-between py-1 border-b border-gray-200 dark:border-zinc-700">
-            <span className="font-semibold">First Seen:</span>
-            <span>{formatIST(customer.firstSeenAt)}</span>
-          </div>
-
-          <div className="flex justify-between py-1 border-b border-gray-200 dark:border-zinc-700">
-            <span className="font-semibold">Scan Count:</span>
+          <div className="flex justify-between py-1 pt-1">
+            <span className="font-semibold">Total scans:</span>
             <span>{customer.scanCount}</span>
           </div>
         </div>
@@ -127,7 +106,7 @@ export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
       <button
         type="button"
         onClick={onReset}
-        className="w-full py-4 px-4 bg-black text-white dark:bg-white dark:text-black rounded-md font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+        className="w-full py-4 px-4 bg-black text-white dark:bg-white dark:text-black rounded-md font-bold text-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors shadow-sm"
       >
         SCAN ANOTHER
       </button>

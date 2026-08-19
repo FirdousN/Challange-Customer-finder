@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   Users, 
   ScanLine, 
-  Megaphone, 
   ShieldCheck, 
   LogOut,
   Menu,
@@ -19,7 +18,6 @@ const NAV_ITEMS = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Scans', href: '/admin/scans', icon: ScanLine },
-  { name: 'Campaigns', href: '/admin/campaigns', icon: Megaphone },
   { name: 'Staff', href: '/admin/staff', icon: ShieldCheck },
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: FileText },
 ];

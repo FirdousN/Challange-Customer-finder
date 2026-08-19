@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
         .limit(limit)
         .populate('customerId', 'instagramUsername')
         .populate('staffId', 'name email')
-        .populate('campaignId', 'name')
         .lean(),
       ScanEvent.countDocuments(query),
     ]);
