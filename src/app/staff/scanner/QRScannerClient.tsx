@@ -108,11 +108,10 @@ export default function QRScannerClient() {
           hasAppliedDefaultZoom.current = false; // Reset zoom state for new session
 
           await scannerRef.current.start(
-            { facingMode: { ideal: 'environment' } },
+            { facingMode: 'environment' },
             {
               fps: 10,
               qrbox: { width: 250, height: 250 },
-              aspectRatio: 1.0,
             },
             async (decodedText) => {
               if (isProcessingRef.current) return; // Prevent double-scanning
@@ -182,18 +181,27 @@ export default function QRScannerClient() {
         } else {
           if (isMounted) {
             setHasCameraPermission(false);
-            setErrorMsg('No cameras found on this device. Camera scanning is not supported on this browser/device.');
+            setErrorMsg('No camera was found on this device.');
           }
         }
       } catch (err: unknown) {
         if (isMounted) {
           setHasCameraPermission(false);
-          const errorMsgStr = err instanceof Error ? err.message : String(err);
-          // If the error message suggests a permission issue
-          if (errorMsgStr.toLowerCase().includes('permission') || errorMsgStr.toLowerCase().includes('notallowed')) {
-             setErrorMsg('Camera access is required to scan Instagram QR codes. Please allow camera access in your browser settings and try again.');
+          const errName = err instanceof Error ? err.name : '';
+          const errMsg = err instanceof Error ? err.message : String(err);
+          
+          if (errName === 'NotAllowedError' || errMsg.includes('NotAllowedError') || errMsg.toLowerCase().includes('permission')) {
+             setErrorMsg('Camera permission is blocked. Please allow camera access in your browser settings.');
+          } else if (errName === 'NotFoundError' || errMsg.includes('NotFoundError')) {
+             setErrorMsg('No camera was found on this device.');
+          } else if (errName === 'NotReadableError' || errMsg.includes('NotReadableError')) {
+             setErrorMsg('The camera is currently being used by another application. Close other camera apps and try again.');
+          } else if (errName === 'OverconstrainedError' || errMsg.includes('OverconstrainedError')) {
+             setErrorMsg('The selected camera configuration is not supported. Using the device\'s default camera.');
+          } else if (errName === 'SecurityError' || errMsg.includes('SecurityError')) {
+             setErrorMsg('Camera access is blocked by the browser.');
           } else {
-             setErrorMsg(err instanceof Error ? err.message : 'Camera permission denied or unavailable.');
+             setErrorMsg('Unable to start the camera. Please try again. (' + errMsg + ')');
           }
         }
       }
