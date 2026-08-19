@@ -3,6 +3,13 @@ import { redirect } from 'next/navigation';
 import QRScannerClient from './QRScannerClient';
 import LogoutButton from './LogoutButton';
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default async function ScannerPage() {
   try {
     await requireAuth();
