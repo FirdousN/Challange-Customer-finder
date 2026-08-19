@@ -9,6 +9,7 @@
     "lint": "eslint",
     "seed": "npx tsx src/scripts/seed.ts",
     "seed:dev-staff": "tsx src/scripts/seed-dev-staff.ts",
+    "seed:dev-admin": "tsx src/scripts/seed-dev-admin.ts",
     "seed:prod-campaign": "tsx src/scripts/seed-prod-campaign.ts",
     "seed:participation": "tsx src/scripts/seed-participation.ts",
     "test": "vitest run",
