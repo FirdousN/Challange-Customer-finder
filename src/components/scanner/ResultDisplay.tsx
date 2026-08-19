@@ -64,7 +64,7 @@ export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
         </h2>
         
         {customer && (
-          <div className="text-xl font-medium text-gray-900 dark:text-white mt-1">
+          <div className="text-xl font-medium text-gray-900 dark:text-black mt-1">
             @{customer.instagramUsername}
           </div>
         )}
