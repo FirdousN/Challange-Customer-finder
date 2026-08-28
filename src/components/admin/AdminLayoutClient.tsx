@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Scans', href: '/admin/scans', icon: ScanLine },
+  { name: 'Staff Scanner', href: '/staff/scanner', icon: ScanLine },
   { name: 'Staff', href: '/admin/staff', icon: ShieldCheck },
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: FileText },
 ];

@@ -22,17 +22,12 @@ export default function LoginForm({ role }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
-  }, []);
 
 
-  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+  const handleSubmit = async (e?: 
+    React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
     if (e) e.preventDefault();
-    if (!isMounted || isLoading) return;
+    if (isLoading) return;
 
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address.');
@@ -83,7 +78,7 @@ export default function LoginForm({ role }: LoginFormProps) {
         throw new Error(data.error?.message || 'Invalid login credentials.');
       }
 
-      router.replace('/staff/scanner');
+      router.replace(redirectPath);
       router.refresh();
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -180,10 +175,10 @@ export default function LoginForm({ role }: LoginFormProps) {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!isMounted || isLoading}
+              disabled={isLoading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black dark:focus:ring-offset-black dark:focus:ring-white disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
             >
-              {!isMounted ? 'Loading...' : isLoading ? 'Signing in...' : 'Login'}
+              {isLoading ? 'Signing in...' : 'Login'}
             </button>
           </div>
         </div>
