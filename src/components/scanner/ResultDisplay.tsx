@@ -25,6 +25,7 @@ interface ResultDisplayProps {
 }
 
 export default function ResultDisplay({ data, onReset }: ResultDisplayProps) {
+  // Error Scenerio's
   if (!data.success || data.result === 'ERROR') {  
     return (
       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center space-y-4">

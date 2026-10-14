@@ -8,8 +8,6 @@ type LoginFormProps = {
   role: "ADMIN" | "STAFF";
 };
 
-
-
 export default function LoginForm({ role }: LoginFormProps) {
   const isAdmin = role === "ADMIN";
   const isStaff = role === "STAFF";
@@ -22,7 +20,6 @@ export default function LoginForm({ role }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
 
   const handleSubmit = async (e?: 
     React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
